@@ -8,6 +8,7 @@ function to capture and persist variables from its enclosing scope.
 
 This pattern is powerful for building small, focused components that
 behave like lightweight objects.
+
 ------------------------------------------------------------------------
 ## Why Stateful Factory Functions?
 Use cases include:
@@ -117,6 +118,44 @@ However, factory functions offer: - Shorter, more expressive definitions
 - Encapsulation without additional namespaces
 
 Use factory functions when the state is small and tied tightly to a single operation.
+
+------------------------------------------------------------------------
+## Notes
+### 1. Re-declare sample_std = standard_deviation() for a new sample
+Each call to standard_deviation() creates a new closure with its own fresh state:
+```python
+sample_std = standard_deviation()   # closure #1, empty state
+sample_std2 = standard_deviation()  # closure #2, empty state
+```
+If you reuse the same function instance:
+```python
+sample_std = standard_deviation()
+for x in stream1:
+    sample_std(x)
+for x in stream2:
+    sample_std(x)    # continues from stream1
+```
+The state does not reset because closures persist captured variables (n, mean, power_sum) until you create a new closure.
+
+### 2. Why can’t you write standard_deviation(n) directly inside the loop?
+`standard_deviation` is a **factory**, not the function that computes the standard deviation.\
+It returns the actual function that does the work:
+```python
+std_func = standard_deviation()  # std_func is the inner function "std"
+```
+Calling it like: `standard_deviation(n)`\
+does the wrong thing:
+1. It creates a NEW closure every time
+2. Immediately calls the closure with n
+3. Then discards it
+4. Next iteration repeats from scratch
+
+So each iteration sees a fresh state:
+```python
+for x in stream:
+    standard_deviation()(x)  # WRONG — state resets every iteration
+```
+The function becomes useless because it never accumulates data.
 
 ------------------------------------------------------------------------
 ## Summary
